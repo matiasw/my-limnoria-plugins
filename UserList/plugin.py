@@ -5,6 +5,7 @@ from supybot.i18n import PluginInternationalization
 # HTML Generation imports:
 from typing import List
 from xml.dom.minidom import getDOMImplementation, Document
+import datetime
 
 _ = PluginInternationalization('UserList')
 
@@ -34,6 +35,8 @@ class UserList(callbacks.Plugin):
         )
         dom = impl.createDocument("http://www.w3.org/1999/xhtml", "html", dt)
         html = dom.documentElement
+        html.appendChild(dom.createTextNode("User list created at " +
+str(datetime.datetime.now())))
         for channel in self.userlist.keys():
             table = dom.createElement("table")
             tr = dom.createElement("tr")
