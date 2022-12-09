@@ -21,7 +21,12 @@ class UserList(callbacks.Plugin):
     def updatelist(self, irc, msg):
         for otherIrc in world.ircs:
             for (channel, channel_state) in otherIrc.state.channels.items():
-                self.userlist[channel + " @ " + otherIrc.network] = channel_state.users
+                channelname = channel + "@" + otherIrc.network
+                if channelname in self.registryValue("UserListChannels"):
+                    self.userlist[channelname] = channel_state.users
+                else:
+                    log.info(channelname + " not in channel list, which is " +
+str(self.registryValue("UserListChannels")))
         log.info(str(self.userlist))
                 #log.info("Users in %s on %s are: %r", channel, otherIrc.network, channel_state.users)
     

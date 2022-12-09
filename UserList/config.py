@@ -14,7 +14,8 @@ def configure(advanced):
     # user or not.  You should effect your configuration by manipulating the
     # registry as appropriate.
     from supybot.questions import expect, anything, something, yn
-    conf.registerPlugin('UserList', True)
+    UserList = conf.registerPlugin('UserList', True)
+    
 
 
 UserList = conf.registerPlugin('UserList')
@@ -22,5 +23,8 @@ UserList = conf.registerPlugin('UserList')
 # conf.registerGlobalValue(UserList, 'someConfigVariableName',
 #     registry.Boolean(False, _("""Help for someConfigVariableName.""")))
 
+conf.registerGlobalValue(UserList, "UserListChannels", 
+    registry.SpaceSeparatedListOfStrings("", 
+    """Channels to include in user list, in the channelname@network format as a space separated list"""))
 
 # vim:set shiftwidth=4 tabstop=4 expandtab textwidth=79:
