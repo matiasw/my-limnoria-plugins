@@ -25,9 +25,8 @@ class UserList(callbacks.Plugin):
                 if channelname in self.registryValue("UserListChannels"):
                     self.userlist[channelname] = channel_state.users
                 else:
-                    log.info(channelname + " not in channel list, which is " +
-str(self.registryValue("UserListChannels")))
-        log.info(str(self.userlist))
+                    pass #log.info(channelname + " not in channel list, which is " + str(self.registryValue("UserListChannels")))
+        #log.info(str(self.userlist))
                 #log.info("Users in %s on %s are: %r", channel, otherIrc.network, channel_state.users)
     
     def renderlist(self):
@@ -40,6 +39,9 @@ str(self.registryValue("UserListChannels")))
         )
         dom = impl.createDocument("http://www.w3.org/1999/xhtml", "html", dt)
         html = dom.documentElement
+        title = dom.createElement("title")
+        title.appendChild(dom.createTextNode("User List"))
+        html.appendChild(title)
         html.appendChild(dom.createTextNode("User list created at " +
 str(datetime.datetime.now())))
         for channel in self.userlist.keys():
