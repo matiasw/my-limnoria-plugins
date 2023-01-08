@@ -23,8 +23,10 @@ UserList = conf.registerPlugin('UserList')
 # conf.registerGlobalValue(UserList, 'someConfigVariableName',
 #     registry.Boolean(False, _("""Help for someConfigVariableName.""")))
 
-conf.registerGlobalValue(UserList, "UserListChannels", 
+conf.registerGlobalValue(UserList, "channels", 
     registry.SpaceSeparatedListOfStrings("", 
     """Channels to include in user list, in the channelname@network format as a space separated list"""))
+conf.registerGlobalValue(UserList, 'stylesheet', 
+    registry.String('style.css', """Determines the file name of the CSS style sheet to apply to the page."""))
 
 # vim:set shiftwidth=4 tabstop=4 expandtab textwidth=79:

@@ -22,12 +22,10 @@ class UserList(callbacks.Plugin):
         for otherIrc in world.ircs:
             for (channel, channel_state) in otherIrc.state.channels.items():
                 channelname = channel + "@" + otherIrc.network
-                if channelname in self.registryValue("UserListChannels"):
+                if channelname in self.registryValue("channels"):
                     self.userlist[channelname] = channel_state.users
                 else:
                     pass #log.info(channelname + " not in channel list, which is " + str(self.registryValue("UserListChannels")))
-        #log.info(str(self.userlist))
-                #log.info("Users in %s on %s are: %r", channel, otherIrc.network, channel_state.users)
     
     def renderlist(self):
         # Create HTML:
@@ -39,6 +37,12 @@ class UserList(callbacks.Plugin):
         )
         dom = impl.createDocument("http://www.w3.org/1999/xhtml", "html", dt)
         html = dom.documentElement
+        stylesheet = self.registryValue("stylesheet")
+        if (stylesheet != "none"):
+            style = dom.createElement("link")
+            style.setAttribute("rel", "stylesheet")
+            style.setAttribute("href", stylesheet)
+            html.appendChild(style)
         title = dom.createElement("title")
         title.appendChild(dom.createTextNode("User List"))
         html.appendChild(title)
