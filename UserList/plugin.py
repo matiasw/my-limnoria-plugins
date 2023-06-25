@@ -5,6 +5,8 @@ from supybot.i18n import PluginInternationalization
 # HTML Generation imports:
 from typing import List
 from xml.dom.minidom import getDOMImplementation, Document
+#JSON Generation:
+import json
 import datetime
 
 _ = PluginInternationalization('UserList')
@@ -25,7 +27,8 @@ class UserList(callbacks.Plugin):
                 if channelname in self.registryValue("channels"):
                     self.userlist[channelname] = channel_state.users
                 else:
-                    pass #log.info(channelname + " not in channel list, which is " + str(self.registryValue("UserListChannels")))
+                    log.info(channelname + " not in channel list, which is " +
+str(self.registryValue("channels")))
     
     def renderlist(self):
         # Create HTML:
@@ -66,6 +69,12 @@ str(datetime.datetime.now())))
         f = open("userlist.html", "w")
         f.write(dom.toxml())
         f.close()
+        # Create JSON:
+        json_data = {}
+        for channel in self.userlist.keys():
+            json_data[channel] = json.dumps(list(self.userlist[channel]))
+        with open("userlist.json", "w") as json_file:
+            json_file.write(str(json_data))
 
     def doJoin(self, irc, msg):
         self.updatelist(irc, msg)
