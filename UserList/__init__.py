@@ -7,7 +7,7 @@ import supybot
 from supybot import world
 
 # Use this for the version of this plugin.
-__version__ = "0.4"
+__version__ = "0.5"
 
 __author__ = supybot.Author('Matias Wilkman', 'appas',
 'matias.wilkman@gmail.com')
@@ -17,7 +17,7 @@ __author__ = supybot.Author('Matias Wilkman', 'appas',
 __contributors__ = {}
 
 # This is a url where the most recent plugin package can be downloaded.
-__url__ = 'https://github.com/matiasw/limnoria-plugins/UserList'
+__url__ = 'https://github.com/matiasw/my-limnoria-plugins/UserList'
 
 from . import config
 from . import plugin
