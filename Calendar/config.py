@@ -29,6 +29,8 @@ Calendar = conf.registerPlugin('Calendar')
 # conf.registerGlobalValue(Calendar, 'someConfigVariableName',
 #     registry.Boolean(False, _("""Help for someConfigVariableName.""")))
 conf.registerGlobalValue(Calendar, 'calendars', 
-    registry.SpaceSeparatedListOfStrings("", """Determines the calendar URLs in (in ics format) to use"""))
+    registry.String("", """Determines the calendar URLs (in ics format) to use. Given as a JSON string, with name of calendar as string as key, and URL of calendar as string as value"""))
+conf.registerGlobalValue(Calendar, 'dateformat', 
+    registry.String("%d.%m.%Y", """Determines the date format to use"""))
 
 # vim:set shiftwidth=4 tabstop=4 expandtab textwidth=79:
