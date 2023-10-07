@@ -12,7 +12,43 @@ import datetime
 _ = PluginInternationalization('UserList')
 
 userlist = {}
+stylesheet = "none"
 
+class UserList(callbacks.Plugin):
+    def __init__(self, irc):
+        super().__init__(irc)
+        self.updatelist(irc, None)
+        #register http server callback:
+        callback = UserListServerCallback()
+        httpserver.hook('userlist', callback)
+        stylesheet = self.registryValue("stylesheet")
+
+    def die(self):
+        #unregister callback:
+        httpserver.unhook('userlist')
+        super().die()
+
+    """List users from channels that the bot is on"""
+    def updatelist(self, irc, msg):
+        for otherIrc in world.ircs:
+            for (channel, channel_state) in otherIrc.state.channels.items():
+                channelname = channel + "@" + otherIrc.network
+                if channelname in self.registryValue("channels"):
+                    excluded_users = self.registryValue("ignorednicks")
+                    userlist[channelname] = [user for user in channel_state.users if user not in excluded_users]
+                else:
+                    log.debug(channelname + " not in channel list, which is " +
+str(self.registryValue("channels")))
+    
+    def doJoin(self, irc, msg):
+        self.updatelist(irc, msg)
+    
+    def doPart(self, irc, msg):
+        self.updatelist(irc, msg)
+
+    def doQuit(self, irc, msg):
+        self.updatelist(irc, msg)
+        
 class UserListServerCallback(httpserver.SupyHTTPServerCallback):
     name = 'UserList'
     defaultResponse = """
@@ -30,12 +66,11 @@ class UserListServerCallback(httpserver.SupyHTTPServerCallback):
             )
             dom = impl.createDocument("http://www.w3.org/1999/xhtml", "html", dt)
             html = dom.documentElement
-            #stylesheet = UserList.registryValue("stylesheet")
-            #if (stylesheet != "none"):
-            #    style = dom.createElement("link")
-            #    style.setAttribute("rel", "stylesheet")
-            #    style.setAttribute("href", stylesheet)
-            #    html.appendChild(style)
+            if (stylesheet != "none"):
+                style = dom.createElement("link")
+                style.setAttribute("rel", "stylesheet")
+                style.setAttribute("href", stylesheet)
+                html.appendChild(style)
             title = dom.createElement("title")
             title.appendChild(dom.createTextNode("User List"))
             html.appendChild(title)
@@ -77,7 +112,7 @@ class UserListServerCallback(httpserver.SupyHTTPServerCallback):
               <body>
                <h1>404 Not found</h1>
                <p>
-                The document could not be found. Try one of this links:
+                The document could not be found. Try one of these links:
                 <a href="./userlist.html">User List</a>
                 <a href="./userlist.json">User List, JSON format</a>
                </p>
@@ -89,39 +124,6 @@ class UserListServerCallback(httpserver.SupyHTTPServerCallback):
         handler.end_headers() # We won't send more headers
         handler.wfile.write(response.encode())
 
-class UserList(callbacks.Plugin):
-    def __init__(self, irc):
-        super().__init__(irc)
-        self.updatelist(irc, None)
-        #register http server callback:
-        callback = UserListServerCallback()
-        httpserver.hook('userlist', callback)
-
-    def die(self):
-        #unregister callback:
-        httpserver.unhook('userlist')
-        super().die()
-
-    """List users from channels that the bot is on"""
-    def updatelist(self, irc, msg):
-        for otherIrc in world.ircs:
-            for (channel, channel_state) in otherIrc.state.channels.items():
-                channelname = channel + "@" + otherIrc.network
-                if channelname in self.registryValue("channels"):
-                    userlist[channelname] = channel_state.users
-                else:
-                    log.info(channelname + " not in channel list, which is " +
-str(self.registryValue("channels")))
-    
-    def doJoin(self, irc, msg):
-        self.updatelist(irc, msg)
-    
-    def doPart(self, irc, msg):
-        self.updatelist(irc, msg)
-
-    def doQuit(self, irc, msg):
-        self.updatelist(irc, msg)
-        
 Class = UserList
 
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
