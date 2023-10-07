@@ -26,6 +26,9 @@ UserList = conf.registerPlugin('UserList')
 conf.registerGlobalValue(UserList, "channels", 
     registry.SpaceSeparatedListOfStrings("", 
     """Channels to include in user list, in the channelname@network format as a space separated list"""))
+conf.registerGlobalValue(UserList, "ignorednicks", 
+    registry.SpaceSeparatedListOfStrings("", 
+    """Nicks not to include in the user list"""))
 conf.registerGlobalValue(UserList, 'stylesheet', 
     registry.String('style.css', """Determines the file name of the CSS style sheet to apply to the page."""))
 
