@@ -20,8 +20,9 @@ class UserList(callbacks.Plugin):
         self.updatelist(irc, None)
         #register http server callback:
         callback = UserListServerCallback()
-        httpserver.hook('userlist', callback)
+        global stylesheet
         stylesheet = self.registryValue("stylesheet")
+        httpserver.hook('userlist', callback)
 
     def die(self):
         #unregister callback:
