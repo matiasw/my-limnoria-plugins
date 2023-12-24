@@ -67,17 +67,23 @@ class UserListServerCallback(httpserver.SupyHTTPServerCallback):
             )
             dom = impl.createDocument("http://www.w3.org/1999/xhtml", "html", dt)
             html = dom.documentElement
+            html.setAttribute("xmlns", "http://www.w3.org/1999/xhtml")
+            head = dom.createElement("head")
             if (stylesheet != "none"):
                 style = dom.createElement("link")
                 style.setAttribute("rel", "stylesheet")
                 style.setAttribute("href", stylesheet)
-                html.appendChild(style)
+                head.appendChild(style)
             title = dom.createElement("title")
             title.appendChild(dom.createTextNode("User List"))
-            html.appendChild(title)
-            html.appendChild(dom.createTextNode("User list created at " +
+            head.appendChild(title)
+            html.appendChild(head)
+            body = dom.createElement("body")
+            paragraph = dom.createElement("p")
+            paragraph.appendChild(dom.createTextNode("User list created at " +
                                                 str(datetime.datetime.now()
                                                     .strftime("%d.%m.%Y, %I:%M:%S"))))
+            body.appendChild(paragraph)
             for channel in userlist.keys():
                 table = dom.createElement("table")
                 tr = dom.createElement("tr")
@@ -91,14 +97,20 @@ class UserListServerCallback(httpserver.SupyHTTPServerCallback):
                     td.appendChild(dom.createTextNode(str(user)))
                     tr.appendChild(td)
                     table.appendChild(tr)
-                html.appendChild(table)
-            response = dom.toxml()
+                body.appendChild(table)
+            html.appendChild(body)
+            page = dom.toxml(encoding="UTF-8").decode()
+            page = page.replace('<?xml version="1.0"?>', '<?xml version="1.0" encoding="UTF-8"?>')
+            response = page
         elif path.endswith('userlist.json'):
             # Create JSON:
             json_data = {}
             for channel in userlist.keys():
                 json_data[channel] = json.dumps(list(self.userlist[channel]))
                 response = str(json_data)
+        elif path.endswith(stylesheet):
+            with open(stylesheet) as f:
+                response = str(f.read())
         else:
              handler.send_response(404) # Not found
              handler.send_header('Content-type', 'text/html') # This is the MIME for HTML data
