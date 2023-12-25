@@ -102,6 +102,10 @@ class UserListServerCallback(httpserver.SupyHTTPServerCallback):
             page = dom.toxml(encoding="UTF-8").decode()
             page = page.replace('<?xml version="1.0"?>', '<?xml version="1.0" encoding="UTF-8"?>')
             response = page
+            handler.send_response(200)
+            handler.send_header('Content-type', 'text/html') # This is the MIME for HTML
+            handler.end_headers() # We won't send more headers
+            handler.wfile.write(response.encode())
         elif path.endswith('userlist.json'):
             # Create JSON:
             json_data = {}
@@ -110,7 +114,10 @@ class UserListServerCallback(httpserver.SupyHTTPServerCallback):
                 response = str(json_data)
         elif path.endswith(stylesheet):
             with open(stylesheet) as f:
-                response = str(f.read())
+                handler.send_response(200)
+                handler.send_header('Content-type', 'text/css') # This is the MIME for CSS data
+                handler.end_headers()
+                handler.wfile.write(f.read().encode())
         else:
              handler.send_response(404) # Not found
              handler.send_header('Content-type', 'text/html') # This is the MIME for HTML data
@@ -132,10 +139,6 @@ class UserListServerCallback(httpserver.SupyHTTPServerCallback):
               </body>
              </html>""")
              return
-        handler.send_response(200)
-        handler.send_header('Content-type', 'text/html') # This is the MIME for HTML
-        handler.end_headers() # We won't send more headers
-        handler.wfile.write(response.encode())
 
 Class = UserList
 
