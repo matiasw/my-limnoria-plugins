@@ -1,7 +1,14 @@
+###
+# Copyright (c) 2023, Matias Wilkman
+# All rights reserved.
+#
+#
+###
+
 from supybot import conf, registry
 try:
     from supybot.i18n import PluginInternationalization
-    _ = PluginInternationalization('UserList')
+    _ = PluginInternationalization('Calendar')
 except:
     # Placeholder that allows to run the plugin on a bot
     # without the i18n module
@@ -14,22 +21,16 @@ def configure(advanced):
     # user or not.  You should effect your configuration by manipulating the
     # registry as appropriate.
     from supybot.questions import expect, anything, something, yn
-    UserList = conf.registerPlugin('UserList', True)
-    
+    conf.registerPlugin('Calendar', True)
 
 
-UserList = conf.registerPlugin('UserList')
+Calendar = conf.registerPlugin('Calendar')
 # This is where your configuration variables (if any) should go.  For example:
-# conf.registerGlobalValue(UserList, 'someConfigVariableName',
+# conf.registerGlobalValue(Calendar, 'someConfigVariableName',
 #     registry.Boolean(False, _("""Help for someConfigVariableName.""")))
-
-conf.registerGlobalValue(UserList, "channels", 
-    registry.SpaceSeparatedListOfStrings("", 
-    """Channels to include in user list, in the channelname@network format as a space separated list"""))
-conf.registerGlobalValue(UserList, "ignorednicks", 
-    registry.SpaceSeparatedListOfStrings("", 
-    """Nicks not to include in the user list"""))
-conf.registerGlobalValue(UserList, 'stylesheet', 
-    registry.String('style.css', """Determines the file name of the CSS style sheet to apply to the page."""))
+conf.registerGlobalValue(Calendar, 'calendars', 
+    registry.String("", """Determines the calendar URLs (in ics format) to use. Given as a JSON string, with name of calendar as string as key, and URL of calendar as string as value"""))
+conf.registerGlobalValue(Calendar, 'dateformat', 
+    registry.String("%d.%m.%Y", """Determines the date format to use"""))
 
 # vim:set shiftwidth=4 tabstop=4 expandtab textwidth=79:

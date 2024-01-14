@@ -1,5 +1,11 @@
+###
+# 2023, Matias Wilkman
+#
+#
+###
+
 """
-UserList: List users from a set of channels that the bot is on
+Calendar: Notifies of scheduled events in iCal calendars
 """
 
 import sys
@@ -7,7 +13,7 @@ import supybot
 from supybot import world
 
 # Use this for the version of this plugin.
-__version__ = "0.6"
+__version__ = "0.1"
 
 __author__ = supybot.Author('Matias Wilkman', 'appas',
 'matias.wilkman@gmail.com')
@@ -17,7 +23,7 @@ __author__ = supybot.Author('Matias Wilkman', 'appas',
 __contributors__ = {}
 
 # This is a url where the most recent plugin package can be downloaded.
-__url__ = 'https://github.com/matiasw/my-limnoria-plugins/UserList'
+__url__ = 'https://github.com/matiasw/my-limnoria-plugins/Calendar'
 
 from . import config
 from . import plugin

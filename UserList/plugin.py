@@ -11,6 +11,45 @@ import datetime
 
 _ = PluginInternationalization('UserList')
 
+userlist = {}
+stylesheet = "none"
+
+class UserList(callbacks.Plugin):
+    def __init__(self, irc):
+        super().__init__(irc)
+        self.updatelist(irc, None)
+        #register http server callback:
+        callback = UserListServerCallback()
+        global stylesheet
+        stylesheet = self.registryValue("stylesheet")
+        httpserver.hook('userlist', callback)
+
+    def die(self):
+        #unregister callback:
+        httpserver.unhook('userlist')
+        super().die()
+
+    """List users from channels that the bot is on"""
+    def updatelist(self, irc, msg):
+        for otherIrc in world.ircs:
+            for (channel, channel_state) in otherIrc.state.channels.items():
+                channelname = channel + "@" + otherIrc.network
+                if channelname in self.registryValue("channels"):
+                    excluded_users = self.registryValue("ignorednicks")
+                    userlist[channelname] = [user for user in channel_state.users if user not in excluded_users]
+                else:
+                    log.debug(channelname + " not in channel list, which is " +
+str(self.registryValue("channels")))
+    
+    def doJoin(self, irc, msg):
+        self.updatelist(irc, msg)
+    
+    def doPart(self, irc, msg):
+        self.updatelist(irc, msg)
+
+    def doQuit(self, irc, msg):
+        self.updatelist(irc, msg)
+        
 class UserListServerCallback(httpserver.SupyHTTPServerCallback):
     name = 'UserList'
     defaultResponse = """
@@ -18,9 +57,67 @@ class UserListServerCallback(httpserver.SupyHTTPServerCallback):
         Content served: userlist.html, userlist.json"""
 
     def doGet(self, handler, path):
-        if path == './userlist.html' or path == './userlist.json':
-            with open(path) as f:
-                response = f.read()
+        if path.endswith('userlist.html'):
+            # Create HTML:
+            impl = getDOMImplementation()
+            dt = impl.createDocumentType(
+                "html",
+                "-//W3C//DTD XHTML 1.0 Strict//EN",
+                "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd",
+            )
+            dom = impl.createDocument("http://www.w3.org/1999/xhtml", "html", dt)
+            html = dom.documentElement
+            html.setAttribute("xmlns", "http://www.w3.org/1999/xhtml")
+            head = dom.createElement("head")
+            if (stylesheet != "none"):
+                style = dom.createElement("style")
+                with open(stylesheet) as f:
+                    style.appendChild(dom.createTextNode(f.read()))
+                head.appendChild(style)
+            title = dom.createElement("title")
+            title.appendChild(dom.createTextNode("User List"))
+            head.appendChild(title)
+            html.appendChild(head)
+            body = dom.createElement("body")
+            paragraph = dom.createElement("p")
+            paragraph.appendChild(dom.createTextNode("User list created at " +
+                                                str(datetime.datetime.now()
+                                                    .strftime("%d.%m.%Y, %I:%M:%S"))))
+            body.appendChild(paragraph)
+            for channel in userlist.keys():
+                table = dom.createElement("table")
+                tr = dom.createElement("tr")
+                th = dom.createElement("th")
+                th.appendChild(dom.createTextNode(channel))
+                tr.appendChild(th)
+                table.appendChild(tr)
+                for user in userlist[channel]:
+                    tr = dom.createElement("tr")
+                    td = dom.createElement("td") 
+                    td.appendChild(dom.createTextNode(str(user)))
+                    tr.appendChild(td)
+                    table.appendChild(tr)
+                body.appendChild(table)
+            html.appendChild(body)
+            page = dom.toxml(encoding="UTF-8").decode()
+            page = page.replace('<?xml version="1.0"?>', '<?xml version="1.0" encoding="UTF-8"?>')
+            response = page
+            handler.send_response(200)
+            handler.send_header('Content-type', 'text/html') # This is the MIME for HTML
+            handler.end_headers() # We won't send more headers
+            handler.wfile.write(response.encode())
+        elif path.endswith('userlist.json'):
+            # Create JSON:
+            json_data = {}
+            for channel in userlist.keys():
+                json_data[channel] = json.dumps(list(self.userlist[channel]))
+                response = str(json_data)
+        elif path.endswith(stylesheet):
+            with open(stylesheet) as f:
+                handler.send_response(200)
+                handler.send_header('Content-type', 'text/css') # This is the MIME for CSS data
+                handler.end_headers()
+                handler.wfile.write(f.read().encode())
         else:
              handler.send_response(404) # Not found
              handler.send_header('Content-type', 'text/html') # This is the MIME for HTML data
@@ -35,103 +132,14 @@ class UserListServerCallback(httpserver.SupyHTTPServerCallback):
               <body>
                <h1>404 Not found</h1>
                <p>
-                The document could not be found. Try one of this links:
+                The document could not be found. Try one of these links:
                 <a href="./userlist.html">User List</a>
                 <a href="./userlist.json">User List, JSON format</a>
                </p>
               </body>
              </html>""")
              return
-        handler.send_response(200)
-        handler.send_header('Content-type', 'text/plain') # This is the MIME for plain text
-        handler.end_headers() # We won't send more headers
-        handler.wfile.write(response)
 
-class UserList(callbacks.Plugin):
-    userlist = {}
-    def __init__(self, irc):
-        super().__init__(irc)
-        self.updatelist(irc, None)
-        self.renderlist()
-        #register http server callback:
-        callback = UserListServerCallback()
-        httpserver.hook('userlist', callback)
-
-    def die(self):
-        #unregister callback:
-        httpserver.unhook('userlist')
-        super().die()
-
-    """List users from channels that the bot is on"""
-    def updatelist(self, irc, msg):
-        for otherIrc in world.ircs:
-            for (channel, channel_state) in otherIrc.state.channels.items():
-                channelname = channel + "@" + otherIrc.network
-                if channelname in self.registryValue("channels"):
-                    self.userlist[channelname] = channel_state.users
-                else:
-                    log.info(channelname + " not in channel list, which is " +
-str(self.registryValue("channels")))
-    
-    def renderlist(self):
-        # Create HTML:
-        impl = getDOMImplementation()
-        dt = impl.createDocumentType(
-            "html",
-            "-//W3C//DTD XHTML 1.0 Strict//EN",
-            "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd",
-        )
-        dom = impl.createDocument("http://www.w3.org/1999/xhtml", "html", dt)
-        html = dom.documentElement
-        stylesheet = self.registryValue("stylesheet")
-        if (stylesheet != "none"):
-            style = dom.createElement("link")
-            style.setAttribute("rel", "stylesheet")
-            style.setAttribute("href", stylesheet)
-            html.appendChild(style)
-        title = dom.createElement("title")
-        title.appendChild(dom.createTextNode("User List"))
-        html.appendChild(title)
-        html.appendChild(dom.createTextNode("User list created at " +
-                                            str(datetime.datetime.now()
-                                                .strftime("%d.%m.%Y, %I:%M:%S"))))
-        for channel in self.userlist.keys():
-            table = dom.createElement("table")
-            tr = dom.createElement("tr")
-            th = dom.createElement("th")
-            th.appendChild(dom.createTextNode(channel))
-            tr.appendChild(th)
-            table.appendChild(tr)
-            for user in self.userlist[channel]:
-                tr = dom.createElement("tr")
-                td = dom.createElement("td") 
-                td.appendChild(dom.createTextNode(str(user)))
-                tr.appendChild(td)
-                table.appendChild(tr)
-            html.appendChild(table)
-        # Write to file:
-        f = open("userlist.html", "w")
-        f.write(dom.toxml())
-        f.close()
-        # Create JSON:
-        json_data = {}
-        for channel in self.userlist.keys():
-            json_data[channel] = json.dumps(list(self.userlist[channel]))
-        with open("userlist.json", "w") as json_file:
-            json_file.write(str(json_data))
-
-    def doJoin(self, irc, msg):
-        self.updatelist(irc, msg)
-        self.renderlist()
-    
-    def doPart(self, irc, msg):
-        self.updatelist(irc, msg)
-        self.renderlist()
-
-    def doQuit(self, irc, msg):
-        self.updatelist(irc, msg)
-        self.renderlist()
-        
 Class = UserList
 
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
