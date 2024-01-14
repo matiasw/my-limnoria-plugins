@@ -71,6 +71,7 @@ class UserListServerCallback(httpserver.SupyHTTPServerCallback):
             head = dom.createElement("head")
             if (stylesheet != "none"):
                 style = dom.createElement("style")
+                style.setAttribute("type", "text/css")
                 with open(stylesheet) as f:
                     style.appendChild(dom.createTextNode(f.read()))
                 head.appendChild(style)
