@@ -70,9 +70,9 @@ class UserListServerCallback(httpserver.SupyHTTPServerCallback):
             html.setAttribute("xmlns", "http://www.w3.org/1999/xhtml")
             head = dom.createElement("head")
             if (stylesheet != "none"):
-                style = dom.createElement("link")
-                style.setAttribute("rel", "stylesheet")
-                style.setAttribute("href", stylesheet)
+                style = dom.createElement("style")
+                with open(stylesheet) as f:
+                    style.appendChild(dom.createTextNode(f.read()))
                 head.appendChild(style)
             title = dom.createElement("title")
             title.appendChild(dom.createTextNode("User List"))
