@@ -49,6 +49,9 @@ str(self.registryValue("channels")))
 
     def doQuit(self, irc, msg):
         self.updatelist(irc, msg)
+
+    def doNick(self, irc, msg):
+        self.updatelist(irc, msg)
         
 class UserListServerCallback(httpserver.SupyHTTPServerCallback):
     name = 'UserList'
