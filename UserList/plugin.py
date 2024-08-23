@@ -1,4 +1,4 @@
-from supybot import utils, plugins, ircutils, callbacks, irclib, world, httpserver
+from supybot import utils, plugins, ircutils, callbacks, irclib, world, httpserver, conf
 import supybot.log as log
 from supybot.commands import *
 from supybot.i18n import PluginInternationalization
@@ -18,6 +18,8 @@ class UserList(callbacks.Plugin):
     def __init__(self, irc):
         super().__init__(irc)
         self.updatelist(irc, None)
+        conf.supybot.plugins.UserList.channels.addCallback(self.updatelist)
+        conf.supybot.plugins.UserList.ignorednicks.addCallback(self.updatelist)
         #register http server callback:
         callback = UserListServerCallback()
         global stylesheet
@@ -25,12 +27,14 @@ class UserList(callbacks.Plugin):
         httpserver.hook('userlist', callback)
 
     def die(self):
+        conf.supybot.plugins.UserList.channels.removeCallback(self.updatelist)
+        conf.supybot.plugins.UserList.ignorednicks.removeCallback(self.updatelist)
         #unregister callback:
         httpserver.unhook('userlist')
         super().die()
 
     """List users from channels that the bot is on"""
-    def updatelist(self, irc, msg):
+    def updatelist(self, irc = None, msg = None):
         for otherIrc in world.ircs:
             for (channel, channel_state) in otherIrc.state.channels.items():
                 channelname = channel + "@" + otherIrc.network
