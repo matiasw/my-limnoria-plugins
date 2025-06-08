@@ -8,6 +8,8 @@ from xml.dom.minidom import getDOMImplementation, Document
 #JSON Generation:
 import json
 import datetime
+#timezone:
+import tzlocal
 
 _ = PluginInternationalization('UserList')
 
@@ -87,10 +89,14 @@ class UserListServerCallback(httpserver.SupyHTTPServerCallback):
             head.appendChild(title)
             html.appendChild(head)
             body = dom.createElement("body")
+            # Get the local timezone
+            local_timezone = tzlocal.get_localzone()
+            # Get the UTC offset
+            utc_offset = datetime.now(local_timezone).strftime('%z')
             paragraph = dom.createElement("p")
             paragraph.appendChild(dom.createTextNode("User list created at " +
-                                                str(datetime.datetime.now()
-                                                    .strftime("%d.%m.%Y, %I:%M:%S"))))
+                                                str(datetime.now()
+                                                    .strftime("%d.%m.%Y, %I:%M:%S") + f" Time zone: {local_timezone}, UTC Offset: {utc_offset}")))
             body.appendChild(paragraph)
             for channel in userlist.keys():
                 table = dom.createElement("table")
