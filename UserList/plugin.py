@@ -92,10 +92,10 @@ class UserListServerCallback(httpserver.SupyHTTPServerCallback):
             # Get the local timezone
             local_timezone = tzlocal.get_localzone()
             # Get the UTC offset
-            utc_offset = datetime.now(local_timezone).strftime('%z')
+            utc_offset = datetime.datetime.now(local_timezone).strftime('%z')
             paragraph = dom.createElement("p")
             paragraph.appendChild(dom.createTextNode("User list created at " +
-                                                str(datetime.now()
+                                                str(datetime.datetime.now()
                                                     .strftime("%d.%m.%Y, %I:%M:%S") + f" Time zone: {local_timezone}, UTC Offset: {utc_offset}")))
             body.appendChild(paragraph)
             for channel in userlist.keys():
