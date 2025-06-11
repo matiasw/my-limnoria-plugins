@@ -105,7 +105,8 @@ class UserListServerCallback(httpserver.SupyHTTPServerCallback):
                 th.appendChild(dom.createTextNode(channel))
                 tr.appendChild(th)
                 table.appendChild(tr)
-                for user in sorted(userlist[channel]):
+                sorted_users = sorted(userlist.get(channel, []), key=str.lower)
+                for user in sorted_users:
                     tr = dom.createElement("tr")
                     td = dom.createElement("td") 
                     td.appendChild(dom.createTextNode(str(user)))
