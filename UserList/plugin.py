@@ -7,7 +7,7 @@ from typing import List
 from xml.dom.minidom import getDOMImplementation, Document
 #JSON Generation:
 import json
-import datetime
+from datetime import datetime
 #timezone:
 import tzlocal
 
