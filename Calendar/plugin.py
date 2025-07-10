@@ -18,7 +18,7 @@ class iCal:
     def nextevent(self):
         for event in self.calendar.walk("VEVENT"):
             date = icalendar.vDDDTypes.from_ical(event.get("DTSTART")) 
-            if date > datetime.now().date():
+            if date >= datetime.now().date():
                 return event
 
     def __init__(self, url):
