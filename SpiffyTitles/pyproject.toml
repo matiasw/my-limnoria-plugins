@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools"]
+
+[project]
+name = "limnoria-spiffytitles"
+version = "2020.06.25+git"
+authors = [
+    { name = "butterscotchstallion" },
+    { name = "oddluck <oddluck@riseup.net>" },
+]
+readme = "README.md"
+dependencies = [
+    "limnoria",
+    "requests",
+    "beautifulsoup4",
+    "jinja2",
+]
+classifiers = [
+    'Environment :: Plugins',
+    'Programming Language :: Python :: 3',
+    'Topic :: Communications :: Chat',
+]
+
+[project.entry-points.'limnoria.plugins']
+SpiffyTitles = "limnoria_spiffytitles"
+
+[tool.setuptools.package-dir]
+"limnoria_spiffytitles" = "."
+"limnoria_spiffytitles.local" = "local/"
+
+[tool.setuptools.package-data]
+"limnoria_spiffytitles" = ["locales/*.po"]
