@@ -13,59 +13,35 @@ import tzlocal
 
 _ = PluginInternationalization('UserList')
 
-userlist = {}
 stylesheet = "none"
 
 class UserList(callbacks.Plugin):
     def __init__(self, irc):
         super().__init__(irc)
-        self.updatelist(irc, None)
-        conf.supybot.plugins.UserList.channels.addCallback(self.updatelist)
-        conf.supybot.plugins.UserList.ignorednicks.addCallback(self.updatelist)
         #register http server callback:
-        callback = UserListServerCallback()
+        callback = UserListServerCallback(self)
         global stylesheet
         stylesheet = self.registryValue("stylesheet")
         httpserver.hook('userlist', callback)
 
     def die(self):
-        conf.supybot.plugins.UserList.channels.removeCallback(self.updatelist)
-        conf.supybot.plugins.UserList.ignorednicks.removeCallback(self.updatelist)
         #unregister callback:
         httpserver.unhook('userlist')
         super().die()
 
-    """List users from channels that the bot is on"""
-    def updatelist(self, irc = None, msg = None):
-        for otherIrc in world.ircs:
-            for (channel, channel_state) in otherIrc.state.channels.items():
-                channelname = channel + "@" + otherIrc.network
-                if channelname in self.registryValue("channels"):
-                    excluded_users = self.registryValue("ignorednicks")
-                    userlist[channelname] = [user for user in channel_state.users if user not in excluded_users]
-                else:
-                    log.debug(channelname + " not in channel list, which is " +
-str(self.registryValue("channels")))
-    
-    def doJoin(self, irc, msg):
-        self.updatelist(irc, msg)
-    
-    def doPart(self, irc, msg):
-        self.updatelist(irc, msg)
-
-    def doQuit(self, irc, msg):
-        self.updatelist(irc, msg)
-
-    def doNick(self, irc, msg):
-        self.updatelist(irc, msg)
-        
 class UserListServerCallback(httpserver.SupyHTTPServerCallback):
     name = 'UserList'
     defaultResponse = """
         This plugin handles only GET request, please don't use other requests.
         Content served: userlist.html, userlist.json"""
 
+    def __init__(self, plugin):
+        self.plugin = plugin
+
     def doGet(self, handler, path):
+
+        userlist = self.updatelist()
+
         if path.endswith('userlist.html'):
             # Create HTML:
             impl = getDOMImplementation()
@@ -154,6 +130,21 @@ class UserListServerCallback(httpserver.SupyHTTPServerCallback):
               </body>
              </html>""")
              return
+
+    """List users from channels that the bot is on"""
+    def updatelist(self):
+        userlist = {}
+        for otherIrc in world.ircs:
+            for (channel, channel_state) in otherIrc.state.channels.items():
+                channelname = channel + "@" + otherIrc.network
+                log.info("channel: " + str(channelname))
+                if channelname in self.plugin.registryValue("channels"):
+                    excluded_users = self.plugin.registryValue("ignorednicks")
+                    userlist[channelname] = [user for user in channel_state.users if user not in excluded_users]
+                else:
+                    log.debug(channelname + " not in channel list, which is " +
+str(self.plugin.registryValue("channels")))
+        return userlist
 
 Class = UserList
 
