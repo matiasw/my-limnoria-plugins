@@ -803,9 +803,9 @@ class SpiffyTitles(callbacks.Plugin):
             if video_id:
                 return video_id
             else:
-                log.error("SpiffyTitles: error getting video id from %s" % (url))
+                log.debug("SpiffyTitles: error getting video id from %s" % (url))
         except IndexError as e:
-            log.error(
+            log.debug(
                 "SpiffyTitles: error getting video id from %s (%s)" % (url, str(e))
             )
 
@@ -845,28 +845,38 @@ class SpiffyTitles(callbacks.Plugin):
                     return path_parts[path_parts.index('channel') + 1]
                 # handle https://www.youtube.com/@GoogleDevelopers style URLs:
                 elif "@" in parsed_url.path:
-                    username = parsed_url.path.split("@")[1]
-                    api_url = 'https://www.googleapis.com/youtube/v3/channels'
-                    log.debug("SpiffyTitles: requesting %s for channel name %s" % (api_url, username))
+                    handle = parsed_url.path.split("@")[1]
+
+                    # Step 1: search for the channel by handle or name
+                    search_url = "https://www.googleapis.com/youtube/v3/search"
+                    log.debug("SpiffyTitles: searching for channel handle %s" % handle)
+
                     try:
-                        request = requests.get(
-                            api_url, timeout=self.timeout, proxies=self.proxies,
+                        search_request = requests.get(
+                            search_url,
+                            timeout=self.timeout,
+                            proxies=self.proxies,
                             params={
-                                'part': 'id',
-                                'forUsername': username,
-                                'key': api_key
-                            }
+                                "part": "snippet",
+                                "type": "channel",
+                                "q": handle,
+                                "key": api_key,
+                            },
                         )
-                        request.raise_for_status()
-                        data = json.loads(request.content.decode())
-                        if data['items']:
-                            return data['items'][0]['id']
-                    except (
-                        requests.exceptions.RequestException,
-                        requests.exceptions.HTTPError,
-                    ) as e:
+                        search_request.raise_for_status()
+                        search_data = search_request.json()
+
+                        if search_data.get("items"):
+                            channel_id = search_data["items"][0]["id"]["channelId"]
+
+                            # Step 2: return the channel ID directly
+                            return channel_id
+
+                    except (requests.exceptions.RequestException, requests.exceptions.HTTPError) as e:
                         log.error("SpiffyTitles: YouTube Error: {0}".format(e))
+
                 return None
+
         except Exception as e:
             log.error(
                 "SpiffyTitles: error getting channel id from %s (%s)" % (url, str(e))
