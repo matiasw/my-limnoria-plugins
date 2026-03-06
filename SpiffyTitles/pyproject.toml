@@ -26,7 +26,6 @@ SpiffyTitles = "limnoria_spiffytitles"
 
 [tool.setuptools.package-dir]
 "limnoria_spiffytitles" = "."
-"limnoria_spiffytitles.local" = "local/"
 
 [tool.setuptools.package-data]
 "limnoria_spiffytitles" = ["locales/*.po"]
