@@ -1,4 +1,6 @@
-Spiffytitles is no longer supported... By me... Please feel free to fork!
+Spiffytitles is now being maintained by [matiasw](https://github.com/matiasw)
+
+It can be installed with the PluginDownloader: plugindownloader install appas SpiffyTitles 
 
 Highly customizable and fully-featured link title snarfer with many URL handlers.
 
