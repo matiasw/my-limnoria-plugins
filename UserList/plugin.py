@@ -41,6 +41,7 @@ class UserListServerCallback(httpserver.SupyHTTPServerCallback):
     def doGet(self, handler, path):
 
         userlist = self.updatelist()
+        stylesheet = self.plugin.registryValue("stylesheet")
 
         if path.endswith('userlist.html'):
             # Create HTML:
@@ -55,11 +56,14 @@ class UserListServerCallback(httpserver.SupyHTTPServerCallback):
             html.setAttribute("xmlns", "http://www.w3.org/1999/xhtml")
             head = dom.createElement("head")
             if (stylesheet != "none"):
-                style = dom.createElement("style")
-                style.setAttribute("type", "text/css")
-                with open(stylesheet) as f:
-                    style.appendChild(dom.createTextNode(f.read()))
-                head.appendChild(style)
+                try:
+                    with open(stylesheet) as f:
+                        style = dom.createElement("style")
+                        style.setAttribute("type", "text/css")
+                        style.appendChild(dom.createTextNode(f.read()))
+                        head.appendChild(style)
+                except FileNotFoundError:
+                    log.error("Stylesheet file not found: %s", stylesheet)
             title = dom.createElement("title")
             title.appendChild(dom.createTextNode("User List"))
             head.appendChild(title)
