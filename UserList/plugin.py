@@ -98,7 +98,7 @@ class UserListServerCallback(httpserver.SupyHTTPServerCallback):
             page = page.replace('<?xml version="1.0"?>', '<?xml version="1.0" encoding="UTF-8"?>')
             response = page
             handler.send_response(200)
-            handler.send_header('Content-type', 'text/html') # This is the MIME for HTML
+            handler.send_header('Content-type', 'application/xhtml+xml') 
             handler.end_headers() # We won't send more headers
             handler.wfile.write(response.encode())
         elif path.endswith('userlist.json'):
