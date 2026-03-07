@@ -3,6 +3,7 @@ import supybot.log as log
 from supybot.commands import *
 from supybot.i18n import PluginInternationalization
 # HTML Generation imports:
+from pathlib import Path
 from typing import List
 from xml.dom.minidom import getDOMImplementation, Document
 #JSON Generation:
@@ -57,13 +58,14 @@ class UserListServerCallback(httpserver.SupyHTTPServerCallback):
             head = dom.createElement("head")
             if (stylesheet != "none"):
                 try:
-                    with open(stylesheet) as f:
+                    stylesheetfile = str(Path(__file__).parent) + "/" + stylesheet
+                    with open(stylesheetfile) as f:
                         style = dom.createElement("style")
                         style.setAttribute("type", "text/css")
                         style.appendChild(dom.createTextNode(f.read()))
                         head.appendChild(style)
                 except FileNotFoundError:
-                    log.error("Stylesheet file not found: %s", stylesheet)
+                    log.error("Stylesheet file not found: %s", stylesheetfile)
             title = dom.createElement("title")
             title.appendChild(dom.createTextNode("User List"))
             head.appendChild(title)
