@@ -45,6 +45,9 @@ try:
 except ImportError as e:
     raise ImportError("%s. Try installing beautifulsoup4." % (e.args[0])) from None
 
+import warnings
+warnings.filterwarnings("ignore", category=GuessedAtParserWarning, module=__name__)
+
 try:
     from supybot.i18n import PluginInternationalization
 
