@@ -41,7 +41,7 @@ from jinja2 import Template
 import requests
 
 try:
-    from bs4 import BeautifulSoup
+    from bs4 import BeautifulSoup, GuessedAtParserWarning
 except ImportError as e:
     raise ImportError("%s. Try installing beautifulsoup4." % (e.args[0])) from None
 
