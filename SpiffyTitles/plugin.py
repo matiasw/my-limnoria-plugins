@@ -806,11 +806,27 @@ class SpiffyTitles(callbacks.Plugin):
             if video_id:
                 return video_id
             else:
-                log.error("SpiffyTitles: error getting video id from %s" % (url))
+                log.debug("SpiffyTitles: error getting video id from %s" % (url))
         except IndexError as e:
             log.error(
                 "SpiffyTitles: error getting video id from %s (%s)" % (url, str(e))
             )
+
+    def get_playlist_id_from_url(self, url, info):
+        """
+        Extract a playlist ID from a YouTube URL by looking for the
+        "list" query parameter.  Returns the ID or None if not present.
+        """
+        try:
+            parsed = parse_qsl(info.query)
+            params = dict(parsed)
+            if "list" in params:
+                return params["list"]
+        except Exception as e:
+            log.error(
+                "SpiffyTitles: error getting playlist id from %s (%s)" % (url, str(e))
+            )
+        return None
 
     def get_channel_id_from_url(self, url, info, api_key):
         """
@@ -881,14 +897,14 @@ class SpiffyTitles(callbacks.Plugin):
                 return None
 
         except Exception as e:
-            log.error(
+            log.debug(
                 "SpiffyTitles: error getting channel id from %s (%s)" % (url, str(e))
             )
  
-    def handler_youtube(self, url, domain, channel):
+    def handler_youtube(self, url, info, channel, network):
         """
         Uses the Youtube API to provide additional meta data about
-        Youtube Video links posted.
+        Youtube links posted.  Supports video, channel and playlist URLs.
         """
         type = "video"
         youtube_handler_enabled = self.registryValue("youtube.enabled", channel, network)
@@ -902,17 +918,22 @@ class SpiffyTitles(callbacks.Plugin):
             )
             return None
         log.debug("SpiffyTitles: calling Youtube handler for %s" % (url))
-        video_id = self.get_video_id_from_url(url, domain)
-        if not video_id:
+
+        # determine ids from URL
+        video_id = self.get_video_id_from_url(url, info)
+        playlist_id = self.get_playlist_id_from_url(url, info)
+        if playlist_id and not video_id:
+            type = "playlist"
+        elif not video_id:
             log.debug(
                 "SpiffyTitles: Failed to get YouTube video ID for URL: {0}, trying channel ID...".format(url)
             )
-            channel_id = self.get_channel_id_from_url(url, domain, developer_key)
+            channel_id = self.get_channel_id_from_url(url, info, developer_key)
             if not channel_id:
                 log.debug(
                     "SpiffyTitles: Failed to get Youtube Channel ID for URL: {0}".format(url)
                 )
-                return self.handler_default(url, channel)
+                return self.handler_default(url, channel, network)
             else:
                 type = "channel"
         else:
@@ -938,11 +959,11 @@ class SpiffyTitles(callbacks.Plugin):
                 requests.exceptions.HTTPError,
             ) as e:
                 log.error("SpiffyTitles: YouTube Error: {0}".format(e))
-                return self.handler_default(url, channel)
+                return self.handler_default(url, channel, network)
             response = json.loads(request.content.decode())
             if not response or not response.get("items"):
                 log.error("SpiffyTitles: Failed to parse YouTube JSON response")
-                return self.handler_default(url, channel)
+                return self.handler_default(url, channel, network)
             try:
                 items = response["items"]
                 video = items[0]
@@ -979,7 +1000,7 @@ class SpiffyTitles(callbacks.Plugin):
                     restricted = True
                 published = snippet["publishedAt"].split("T")[0]
                 timestamp = self.get_timestamp_from_youtube_url(url)
-                yt_logo = self.get_youtube_logo(channel)
+                yt_logo = self.get_youtube_logo(channel, network)
                 compiled_template = yt_template.render(
                     {
                         "title": title,
@@ -1020,11 +1041,11 @@ class SpiffyTitles(callbacks.Plugin):
                 requests.exceptions.HTTPError,
             ) as e:
                 log.error("SpiffyTitles: YouTube Error: {0}".format(e))
-                return self.handler_default(url, channel)
+                return self.handler_default(url, channel, network)
             response = json.loads(request.content.decode())
             if not response or not response.get("items"):
                 log.error("SpiffyTitles: Failed to parse YouTube JSON response")
-                return self.handler_default(url, channel)
+                return self.handler_default(url, channel, network)
             try:
                 items = response["items"]
                 yt_channel = items[0]
@@ -1040,8 +1061,50 @@ class SpiffyTitles(callbacks.Plugin):
                     subscriber_count = "{:,}".format(int(statistics["subscriberCount"]))
                 if "videoCount" in statistics:
                     video_count = "{:,}".format(int(statistics["videoCount"]))
-                yt_logo = self.get_youtube_logo(channel)
+                yt_logo = self.get_youtube_logo(channel, network)
                 title = yt_logo + " :: " + "Channel: " + title + " :: Views: " + view_count + " :: Subscribers: " + subscriber_count + " :: Videos: " + video_count
+            except IndexError as e:
+                log.error(
+                    "SpiffyTitles: IndexError. Youtube API JSON response: %s" % (str(e))
+                )
+        elif type == "playlist":
+            options = {
+                "part": "snippet,contentDetails",
+                "maxResults": 1,
+                "key": developer_key,
+                "id": playlist_id,
+            }
+            api_url = "https://www.googleapis.com/youtube/v3/playlists"
+            log.debug("SpiffyTitles: requesting %s" % (api_url))
+            try:
+                request = requests.get(
+                    api_url, params=options, timeout=self.timeout, proxies=self.proxies
+                )
+                request.raise_for_status()
+            except (
+                requests.exceptions.RequestException,
+                requests.exceptions.HTTPError,
+            ) as e:
+                log.error("SpiffyTitles: YouTube Error: {0}".format(e))
+                return self.handler_default(url, channel, network)
+            response = json.loads(request.content.decode())
+            if not response or not response.get("items"):
+                log.error("SpiffyTitles: Failed to parse YouTube JSON response")
+                return self.handler_default(url, channel, network)
+            try:
+                items = response["items"]
+                playlist = items[0]
+                snippet = playlist["snippet"]
+                title = snippet.get("title", "")
+                item_count = playlist.get("contentDetails", {}).get("itemCount", 0)
+                channel_title = snippet.get("channelTitle", "")
+                published = snippet.get("publishedAt", "").split("T")[0]
+                yt_logo = self.get_youtube_logo(channel, network)
+                # build a simple output string; no statistics available on
+                # playlist resources so we just show the number of videos.
+                title = yt_logo + " :: " + "Playlist: " + title + " :: Published at: " + published + " :: Videos: " + str(item_count)
+                if channel_title:
+                    title += " :: Channel: " + channel_title
             except IndexError as e:
                 log.error(
                     "SpiffyTitles: IndexError. Youtube API JSON response: %s" % (str(e))
