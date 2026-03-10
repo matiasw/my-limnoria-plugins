@@ -157,6 +157,7 @@ class SpiffyTitles(callbacks.Plugin):
         channel = msg.channel
         message = msg.args[1]
         title = None
+        log.debug("SpiffyTitles: doPrivmsg received message '%s' from %s in %s" % (message, msg.nick, channel))
         if not ircutils.isUserHostmask(msg.prefix):
             return
         if not irc.isChannel(channel):
@@ -199,6 +200,7 @@ class SpiffyTitles(callbacks.Plugin):
             urls = self.get_urls_from_message(message, channel, irc.network)
         else:
             urls = self.get_urls_from_message(message, channel, irc.network)[0:1]
+        log.debug("SpiffyTitles: extracted URLs %r" % (urls,))
         if not urls:
             return
         for url in urls:
@@ -281,10 +283,11 @@ class SpiffyTitles(callbacks.Plugin):
         if cached_link:
             title = cached_link["title"]
         else:
-            if domain in self.handlers:
+            log.debug("SpiffyTitles: looking up handler for domain %s" % (domain,))
+        if domain in self.handlers:
                 handler = self.handlers[domain]
                 title = handler(url, info, channel, network)
-            else:
+        else:
                 base_domain = self.get_base_domain("http://" + domain)
                 if base_domain in self.handlers:
                     handler = self.handlers[base_domain]
@@ -312,6 +315,12 @@ class SpiffyTitles(callbacks.Plugin):
         elif title and cached_link:
             self.link_cache[channel, network].append(cached_link)
             log.debug("SpiffyTitles: serving link from cache: %s" % (url))
+        # If we still don't have a title (default handler disabled or handler
+        # returned nothing), attempt to fetch the page and scrape the <title>.
+        if not title and not cached_link:
+            log.debug("SpiffyTitles: no handler/title; falling back to HTML scrape")
+            (plain, _) = self.get_source_by_url(url, channel, network)
+            return plain
         return title
 
     def get_link_from_cache(self, url, channel, network):
@@ -1573,7 +1582,9 @@ class SpiffyTitles(callbacks.Plugin):
             "wikipedia.enabled", channel=channel, network=network
         )
         if not wikipedia_handler_enabled:
-            return self.handler_default(url, channel, network)
+            self.log.debug("SpiffyTitles: wikipedia handler disabled, will try default/url scrape")
+            # still attempt to return something ourselves below rather than
+            # simply bail out
         self.log.debug("SpiffyTitles: calling Wikipedia handler for %s" % (url))
         pattern = r"/(?:w(?:iki))/(?P<page>[^/]+)$"
         info = urlparse(url)
@@ -1645,7 +1656,14 @@ class SpiffyTitles(callbacks.Plugin):
             return wikipedia_template.render({"extract": extract})
         else:
             self.log.debug("SpiffyTitles: falling back to default handler")
-            return self.handler_default(url, channel, network)
+            title = self.handler_default(url, channel, network)
+            if title:
+                return title
+            # default handler did not produce anything (possibly disabled);
+            # try plain HTML scraping as last resort
+            self.log.debug("SpiffyTitles: default handler failed, scraping HTML directly")
+            (plain, _) = self.get_source_by_url(url, channel, network)
+            return plain
 
     def handler_reddit(self, url, domain, channel, network):
         """
