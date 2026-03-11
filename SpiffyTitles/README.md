@@ -297,20 +297,11 @@ Default value: `^ [{{ownerscreenname}}] {{title}} :: Duration: {{duration}} :: {
 
 `wikipedia.extractTemplate` - Wikipedia template.
 
-Default value: "^ {{extract}}"
+Default value: `^ Wikipedia: {{title}} :: {{extract}}`
 
 `wikipedia.maxChars` - Extract will be cut to this length (including '...').
 
 Default value: 400
-
-`wikipedia.removeParentheses` - Whether to remove parenthesized text from output.
-
-`wikipedia.ignoreSectionLinks` - Whether to ignore links to specific article sections.
-
-`wikipedia.apiParams` - Add or override API query parameters with a space-separated list of key=value pairs.
-
-`wikipedia.titleParam` - The query parameter that will hold the page title from the URL.
-
 
 ## Other options
 
@@ -426,7 +417,7 @@ A: I couldn't get this to work on my system and it has a lot of features I didn'
 
 Q: It doesn't work for me. What can I do?
 
-A: [Open an issue](https://github.com/oddluck/limnoria-plugins/issues/new) and include at minimum the following:
+A: [Open an issue](https://github.com/matiasw/my-limnoria-plugins/issues) and include at minimum the following:
 
 - Brief description of the problem
 - Any errors that were logged (Look for the ones prefixed "SpiffyTitles")
