@@ -52,7 +52,7 @@ __maintainer__ = getattr(
 __contributors__ = {}
 
 # This is a url where the most recent plugin package can be downloaded.
-__url__ = "https://github.com/oddluck/limnoria-plugins/"
+__url__ = "https://github.com/matiasw/my-limnoria-plugins/tree/master/SpiffyTitles"
 
 from . import config
 from . import plugin

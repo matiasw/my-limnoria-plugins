@@ -36,7 +36,7 @@ import supybot.ircdb as ircdb
 import supybot.log as log
 import supybot.conf as conf
 import re, sys, random, time, json, unicodedata, datetime
-from urllib.parse import urlparse, parse_qsl
+from urllib.parse import urlparse, parse_qsl, unquote
 from jinja2 import Template
 import requests
 
@@ -44,6 +44,13 @@ try:
     from bs4 import BeautifulSoup, GuessedAtParserWarning
 except ImportError as e:
     raise ImportError("%s. Try installing beautifulsoup4." % (e.args[0])) from None
+
+# wikipedia-api is an optional dependency.  If unavailable we fall back
+# to the default handler so the plugin still works without it.
+try:
+    import wikipediaapi
+except ImportError:
+    wikipediaapi = None
 
 import warnings
 warnings.filterwarnings("ignore", category=GuessedAtParserWarning, module=__name__)
@@ -1583,87 +1590,53 @@ class SpiffyTitles(callbacks.Plugin):
         )
         if not wikipedia_handler_enabled:
             self.log.debug("SpiffyTitles: wikipedia handler disabled, will try default/url scrape")
-            # still attempt to return something ourselves below rather than
-            # simply bail out
-        self.log.debug("SpiffyTitles: calling Wikipedia handler for %s" % (url))
-        pattern = r"/(?:w(?:iki))/(?P<page>[^/]+)$"
+            return self.handler_default(url, channel, network)
+
+        if wikipediaapi is None:
+            self.log.error("SpiffyTitles: wikipedia-api library not installed")
+            return self.handler_default(url, channel, network)
+
         info = urlparse(url)
+        pattern = r"/(?:w(?:iki))/(?P<page>[^/]+)$"
         match = re.search(pattern, info.path)
         if not match:
-            self.log.debug("SpiffyTitles: no title found.")
-            return self.handler_default(url, channel, network)
-        elif info.fragment and self.registryValue(
-            "wikipedia.ignoreSectionLinks", channel=channel, network=network
-        ):
-            self.log.debug("SpiffyTitles: ignoring section link.")
-            return self.handler_default(url, channel, network)
+            self.log.debug("SpiffyTitles: no wikipedia page in URL")
+            return None
+        
+        # obtain the part of the path after '/wiki/'.  This handles
+        # translations, unicode and other path quirks more reliably than
+        # using the regex capture.
+        if info.path.startswith("/wiki/"):
+            page_title = info.path.split("/wiki/", 1)[1]
         else:
-            page_title = match.groupdict()["page"]
-        default_api_params = {
-            "format": "json",
-            "action": "query",
-            "prop": "extracts",
-            "exsentences": "2",
-            "exlimit": "1",
-            "exintro": "",
-            "explaintext": "",
-        }
-        wiki_api_params = self.registryValue("wikipedia.apiParams", channel=channel, network=network)
-        extra_params = dict(parse_qsl("&".join(wiki_api_params)))
-        title_param = {
-            self.registryValue("wikipedia.titleParam", channel=channel, network=network): page_title
-        }
-        # merge dicts
-        api_params = default_api_params.copy()
-        api_params.update(extra_params)
-        api_params.update(title_param)
-        api_url = "https://%s/w/api.php" % (info.netloc)
-        extract = ""
-        self.log.debug("SpiffyTitles: requesting %s" % (api_url))
+            page_title = match.group("page")
+        page_title = unquote(page_title).replace("_", " ")
+
+        # language is the first component of the hostname (e.g. en.wikipedia.org)
+        lang = info.netloc.split(".")[0]
+
         try:
-            request = requests.get(
-                api_url, params=api_params, timeout=self.timeout, proxies=self.proxies
-            )
-            request.raise_for_status()
-        except (
-            requests.exceptions.RequestException,
-            requests.exceptions.HTTPError,
-        ) as e:
-            log.error("SpiffyTitles: Wikipedia Error: {0}".format(e))
+            wiki = wikipediaapi.Wikipedia(language=lang, user_agent="Limnoria IRC bot, SpiffyTitles plugin/0.2 (https://github.com/matiasw) wikipedia-api/0.10.2")
+            page = wiki.page(page_title)
+        except Exception as e:
+            self.log.error("SpiffyTitles: wikipedia-api error: %s" % e)
             return self.handler_default(url, channel, network)
-        response = json.loads(request.content.decode())
-        if response:
-            try:
-                extract = list(response["query"]["pages"].values())[0]["extract"]
-            except KeyError as e:
-                self.log.error(
-                    "SpiffyTitles: KeyError. Wikipedia API JSON response: %s" % (str(e))
-                )
-        else:
-            self.log.error("SpiffyTitles: Error parsing Wikipedia API JSON response")
-        if extract:
-            if self.registryValue("wikipedia.removeParentheses"):
-                extract = re.sub(r" ?\([^)]*\)", "", extract)
-            max_chars = self.registryValue("wikipedia.maxChars", channel=channel, network=network)
-            if len(extract) > max_chars:
-                extract = (
-                    extract[: max_chars - 3].rsplit(" ", 1)[0].rstrip(",.") + "..."
-                )
-            extract_template = self.registryValue(
-                "wikipedia.extractTemplate", channel=channel, network=network
-            )
-            wikipedia_template = Template(extract_template)
-            return wikipedia_template.render({"extract": extract})
-        else:
-            self.log.debug("SpiffyTitles: falling back to default handler")
+
+        if not page or not page.exists():
+            self.log.debug("SpiffyTitles: page does not exist, falling back")
             title = self.handler_default(url, channel, network)
-            if title:
-                return title
-            # default handler did not produce anything (possibly disabled);
-            # try plain HTML scraping as last resort
-            self.log.debug("SpiffyTitles: default handler failed, scraping HTML directly")
-            (plain, _) = self.get_source_by_url(url, channel, network)
-            return plain
+            return title
+
+        extract = page.summary
+        max_chars = self.registryValue("wikipedia.maxChars", channel=channel, network=network)
+        if max_chars and len(extract) > max_chars:
+            extract = extract[: max_chars - 3].rsplit(" ", 1)[0].rstrip(",.") + "..."
+        extract_template = self.registryValue(
+            "wikipedia.extractTemplate", channel=channel, network=network
+        )
+        wikipedia_template = Template(extract_template)
+        return wikipedia_template.render({"title": page.title,
+                                          "extract": extract})
 
     def handler_reddit(self, url, domain, channel, network):
         """

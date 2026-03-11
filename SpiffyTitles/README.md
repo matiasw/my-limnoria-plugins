@@ -37,6 +37,12 @@ install pip if you don't have it already (eg. apt install python3-pip)
 If you installed Limnoria in a virtualenv, you need to run pip in that virtualenv too.
 pip3 install --user --upgrade git+https://github.com/matiasw/my-limnoria-plugins.git#subdirectory=SpiffyTitles
 
+### Optional: Wikipedia support
+
+To enable the Wikipedia snarfer, install the optional dependency:
+
+pip3 install --user --upgrade git+https://github.com/matiasw/my-limnoria-plugins.git#subdirectory=SpiffyTitles[wikipedia]
+
 You should `!unload Web` and any other plugins that show link titles for best results
 
 Load SpiffyTitles:
