@@ -310,55 +310,17 @@ conf.registerChannelValue(
 
 conf.registerChannelValue(
     SpiffyTitles.wikipedia,
-    "apiParams",
-    registry.SpaceSeparatedListOfStrings(
-        [],
-        _(
-            """
-            Add/override API parameters with a space-separated list of key=value pairs.
-            """
-        ),
-    ),
-)
-
-conf.registerChannelValue(
-    SpiffyTitles.wikipedia,
-    "titleParam",
-    registry.String(
-        "titles",
-        _("""The query parameter that will hold the page title from the URL."""),
-    ),
-)
-
-# Ideally, links to specific article sections would produce the relevant output for
-# that section. This is not currently implemented.
-conf.registerChannelValue(
-    SpiffyTitles.wikipedia,
-    "ignoreSectionLinks",
-    registry.Boolean(True, _("""Ignore links to specific article sections.""")),
-)
-
-conf.registerChannelValue(
-    SpiffyTitles.wikipedia,
     "maxChars",
     registry.Integer(
         400, _("""Extract will be cut to this length (including '...').""")
     ),
 )
 
-# Remove parenthesized text from output.
-conf.registerChannelValue(
-    SpiffyTitles.wikipedia,
-    "removeParentheses",
-    registry.Boolean(True, _("""Remove parenthesized text from output.""")),
-)
-
 conf.registerChannelValue(
     SpiffyTitles.wikipedia,
     "extractTemplate",
-    registry.String("^ {{extract}}", _("""Wikipedia template.""")),
+    registry.String("^ Wikipedia: {{title}} :: {{extract}}", _("""Wikipedia template. Available variables: title, extract""")),
 )
-
 
 # Reddit configs
 conf.registerGroup(SpiffyTitles, "reddit")

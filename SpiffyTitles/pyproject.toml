@@ -22,6 +22,11 @@ classifiers = [
     'Topic :: Communications :: Chat',
 ]
 
+[project.optional-dependencies]
+wikipedia = [
+    "wikipedia-api",
+]
+
 [project.entry-points.'limnoria.plugins']
 SpiffyTitles = "limnoria_spiffytitles"
 
