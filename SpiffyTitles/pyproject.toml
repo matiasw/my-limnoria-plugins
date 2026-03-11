@@ -3,10 +3,11 @@ requires = ["setuptools"]
 
 [project]
 name = "limnoria-spiffytitles"
-version = "2020.06.25+git"
+version = "2026.03.11+git"
 authors = [
     { name = "butterscotchstallion" },
     { name = "oddluck <oddluck@riseup.net>" },
+    { name = "appas <matias.wilkman@gmail.com>" },
 ]
 readme = "README.md"
 dependencies = [
