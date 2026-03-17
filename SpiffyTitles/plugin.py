@@ -777,12 +777,19 @@ class SpiffyTitles(callbacks.Plugin):
             """ Remove any query strings """
             if "?" in video_id:
                 video_id = video_id.split("?")[0]
+                log.debug("SpiffyTitles: extracted coub video ID %s from URL %s" % (video_id, url))
         if not video_id:
             log.error("SpiffyTitles: Failed to get Coub video ID for URL: %s" % url)
             return self.handler_default(url, channel, network)
-        api_url = "http://coub.com/api/v2/coubs/%s" % video_id
+        api_url = "https://coub.com/api/v2/coubs/%s" % video_id
+        headers = {"User-Agent": self.get_user_agent()}
         try:
-            request = requests.get(api_url, timeout=self.timeout, proxies=self.proxies)
+            request = requests.get(
+                api_url,
+                timeout=self.timeout,
+                proxies=self.proxies,
+                headers=headers,
+            )
             request.raise_for_status()
         except (
             requests.exceptions.RequestException,
