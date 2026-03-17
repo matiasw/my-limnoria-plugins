@@ -36,7 +36,7 @@ import supybot.ircdb as ircdb
 import supybot.log as log
 import supybot.conf as conf
 import re, sys, random, time, json, unicodedata, datetime
-from urllib.parse import urlparse, parse_qsl, unquote
+from urllib.parse import urlparse, parse_qsl, quote, unquote
 from jinja2 import Template
 import requests
 
@@ -1647,7 +1647,7 @@ class SpiffyTitles(callbacks.Plugin):
 
     def handler_reddit(self, url, domain, channel, network):
         """
-        Queries wikipedia API for article extracts.
+        Queries reddit
         """
         reddit_handler_enabled = self.registryValue("reddit.enabled", channel=channel, network=network)
         if not reddit_handler_enabled:
@@ -1695,10 +1695,14 @@ class SpiffyTitles(callbacks.Plugin):
             requests.exceptions.HTTPError,
         ) as e:
             log.error("SpiffyTitles: Reddit Error: {0}".format(e))
-            return self.handler_default(url, channel, network)
         data = {}
         extract = ""
-        response = json.loads(request.content.decode())
+        response = None
+        try:
+            response = json.loads(request.content.decode())
+        except Exception as e:
+            self.log.error("SpiffyTitles: Error parsing Reddit JSON response: %s" % (str(e)))
+
         if response:
             try:
                 if link_type == "thread":
@@ -1712,8 +1716,35 @@ class SpiffyTitles(callbacks.Plugin):
                 self.log.error(
                     "SpiffyTitles: KeyError parsing Reddit JSON response: %s" % (str(e))
                 )
-        else:
-            self.log.error("SpiffyTitles: Error parsing Reddit JSON response")
+                data = {}
+        if not data:
+            self.log.debug("SpiffyTitles: Reddit JSON parse failed, trying oEmbed fallback")
+            try:
+                oembed_url = (
+                    "https://www.reddit.com/oembed?url=%s"
+                    % quote(url, safe="")
+                )
+                headers = {"User-Agent": self.get_user_agent()}
+                request = requests.get(
+                    oembed_url,
+                    headers=headers,
+                    timeout=self.timeout,
+                    proxies=self.proxies,
+                )
+                request.raise_for_status()
+                oembed = json.loads(request.content.decode())
+                if oembed.get("title"):
+                    return "%s (r/%s by %s)" % (
+                        oembed.get("title"),
+                        oembed.get("author_name", ""),
+                        oembed.get("provider_name", "Reddit"),
+                    )
+            except Exception as e:
+                self.log.error("SpiffyTitles: Reddit oEmbed fallback failed: %s" % e)
+                # Continue to default fallback
+                self.log.debug("SpiffyTitles: falling back to default handler")
+                return self.handler_default(url, channel, network)
+
         if data:
             today = datetime.datetime.now().date()
             created = datetime.datetime.fromtimestamp(data["created_utc"]).date()
