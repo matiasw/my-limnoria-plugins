@@ -37,14 +37,14 @@ import supybot.world as world
 
 # Use this for the version of this plugin.  You may wish to put a CVS keyword
 # in here if you're keeping the plugin in CVS or some similar system.
-__version__ = "2020.06.25+git"
+from ._version import version as __version__
 
 # XXX Replace this with an appropriate author or supybot.Author instance.
 __author__ = supybot.Author("butterscotchstallion", "butterscotchstallion", "")
 __maintainer__ = getattr(
     supybot.authors,
-    "oddluck",
-    supybot.Author("oddluck", "oddluck", "oddluck@riseup.net"),
+    "appas",
+    supybot.Author("appas", "appas"),
 )
 
 # This is a dictionary mapping supybot.Author instances to lists of
