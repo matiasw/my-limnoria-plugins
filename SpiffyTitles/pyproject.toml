@@ -1,9 +1,10 @@
 [build-system]
-requires = ["setuptools"]
+requires = ["setuptools>=64", "setuptools_scm>=8.0.4"]
+build-backend = "setuptools.build_meta"
 
 [project]
 name = "limnoria-spiffytitles"
-version = "2026.03.11+git"
+dynamic = ["version"]
 authors = [
     { name = "butterscotchstallion" },
     { name = "oddluck <oddluck@riseup.net>" },
@@ -26,6 +27,12 @@ classifiers = [
 wikipedia = [
     "wikipedia-api",
 ]
+
+[tool.setuptools_scm]
+write_to = "_version.py"
+version_scheme = "calver-by-date"
+local_scheme = "node-and-date"
+root = ".."
 
 [project.entry-points.'limnoria.plugins']
 SpiffyTitles = "limnoria_spiffytitles"
