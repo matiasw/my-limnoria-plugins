@@ -385,6 +385,37 @@ conf.registerChannelValue(
     ),
 )
 
+# Reddit API credentials (optional). When both are set the plugin authenticates
+# via OAuth2 "client_credentials" (application-only / "script" app) so requests
+# are made to oauth.reddit.com instead of www.reddit.com. This avoids the
+# aggressive rate-limiting that Reddit applies to unauthenticated bots.
+conf.registerGlobalValue(
+    SpiffyTitles.reddit,
+    "clientId",
+    registry.String(
+        "",
+        _(
+            """Reddit OAuth2 client ID. Create a "script" app at
+            https://www.reddit.com/prefs/apps to obtain one. Leave empty to
+            use unauthenticated requests."""
+        ),
+        private=True,
+    ),
+)
+
+conf.registerGlobalValue(
+    SpiffyTitles.reddit,
+    "clientSecret",
+    registry.String(
+        "",
+        _(
+            """Reddit OAuth2 client secret that matches reddit.clientId.
+            Leave empty to use unauthenticated requests."""
+        ),
+        private=True,
+    ),
+)
+
 
 # YouTube configs
 conf.registerGroup(SpiffyTitles, "youtube")
