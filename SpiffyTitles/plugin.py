@@ -1645,6 +1645,61 @@ class SpiffyTitles(callbacks.Plugin):
         return wikipedia_template.render({"title": page.title,
                                           "extract": extract})
 
+    def _get_reddit_auth_headers(self):
+        """
+        Returns headers suitable for Reddit API requests.
+
+        When reddit.clientId and reddit.clientSecret are both configured the
+        plugin authenticates via OAuth2 "application-only / client_credentials"
+        flow and returns an Authorization bearer header.  The token is cached
+        on the instance and refreshed automatically when it expires.
+
+        When credentials are absent a plain User-Agent header is returned so
+        that the handler falls back to unauthenticated public API access.
+        """
+        client_id = self.registryValue("reddit.clientId")
+        client_secret = self.registryValue("reddit.clientSecret")
+
+        if not client_id or not client_secret:
+            return {"User-Agent": self.get_user_agent()}, False
+
+        # Check cached token (we store expiry as a UTC timestamp)
+        now = time.time()
+        cached = getattr(self, "_reddit_oauth_token", None)
+        if cached and cached.get("expires_at", 0) > now + 60:
+            return {
+                "User-Agent": self.get_user_agent(),
+                "Authorization": "bearer {}".format(cached["access_token"]),
+            }, True
+
+        # Fetch a fresh token
+        try:
+            r = requests.post(
+                "https://www.reddit.com/api/v1/access_token",
+                auth=(client_id, client_secret),
+                data={"grant_type": "client_credentials"},
+                headers={"User-Agent": self.get_user_agent()},
+                timeout=self.timeout,
+                proxies=self.proxies,
+            )
+            r.raise_for_status()
+            token_data = json.loads(r.content.decode())
+            self._reddit_oauth_token = {
+                "access_token": token_data["access_token"],
+                "expires_at": now + int(token_data.get("expires_in", 3600)),
+            }
+            self.log.debug("SpiffyTitles: obtained Reddit OAuth2 token")
+            return {
+                "User-Agent": self.get_user_agent(),
+                "Authorization": "Bearer {}".format(token_data["access_token"]),
+            }, True
+        except Exception as e:
+            self.log.error(
+                "SpiffyTitles: Reddit OAuth2 token request failed: %s — "
+                "falling back to unauthenticated requests" % e
+            )
+            return {"User-Agent": self.get_user_agent()}, False
+
     def handler_reddit(self, url, domain, channel, network):
         """
         Queries reddit
@@ -1653,23 +1708,29 @@ class SpiffyTitles(callbacks.Plugin):
         if not reddit_handler_enabled:
             return self.handler_default(url, channel, network)
         self.log.debug("SpiffyTitles: calling reddit handler for %s" % (url))
+
+        headers, authenticated = self._get_reddit_auth_headers()
+        # Authenticated requests must go to oauth.reddit.com; unauthenticated
+        # ones use www.reddit.com.
+        api_host = "oauth.reddit.com" if authenticated else "www.reddit.com"
+
         patterns = {
             "thread": {
                 "pattern": r"^/r/(?P<subreddit>[^/]+)/comments/(?P<thread>[^/]+)"
                 r"(?:/[^/]+/?)?$",
-                "url": "https://www.reddit.com/r/{subreddit}/comments/{thread}.json",
+                "url": "https://{host}/r/{subreddit}/comments/{thread}.json",
             },
             "comment": {
                 "pattern": r"^/r/(?P<subreddit>[^/]+)/comments/(?P<thread>[^/]+)/"
                 r"[^/]+/(?P<comment>\w+/?)$",
                 "url": (
-                    "https://www.reddit.com/r/{subreddit}/comments/{thread}/x/"
+                    "https://{host}/r/{subreddit}/comments/{thread}/x/"
                     "{comment}.json"
                 ),
             },
             "user": {
                 "pattern": r"^/u(?:ser)?/(?P<user>[^/]+)/?$",
-                "url": "https://www.reddit.com/user/{user}/about.json",
+                "url": "https://{host}/user/{user}/about.json",
             },
         }
         info = urlparse(url)
@@ -1678,13 +1739,12 @@ class SpiffyTitles(callbacks.Plugin):
             if match:
                 link_type = name
                 link_info = match.groupdict()
-                data_url = patterns[name]["url"].format(**link_info)
+                data_url = patterns[name]["url"].format(host=api_host, **link_info)
                 break
         if not match:
             self.log.debug("SpiffyTitles: no title found.")
             return self.handler_default(url, channel, network)
         self.log.debug("SpiffyTitles: requesting %s" % (data_url))
-        headers = {"User-Agent": self.get_user_agent()}
         try:
             request = requests.get(
                 data_url, headers=headers, timeout=self.timeout, proxies=self.proxies
@@ -1724,7 +1784,6 @@ class SpiffyTitles(callbacks.Plugin):
                     "https://www.reddit.com/oembed?url=%s"
                     % quote(url, safe="")
                 )
-                headers = {"User-Agent": self.get_user_agent()}
                 request = requests.get(
                     oembed_url,
                     headers=headers,
