@@ -1,4 +1,5 @@
 SpiffyTitles is now being maintained by [matiasw](https://github.com/matiasw)
+
 Official repository is at https://github.com/matiasw/my-limnoria-plugins/tree/master/SpiffyTitles
 
 Highly customizable and fully-featured link title snarfer with many URL handlers.
@@ -35,7 +36,6 @@ Check out the [available options](#available-options)!
 ## Install SpiffyTitles
 Install pip if you don't have it already (eg. `apt install python3-pip`)
 If you installed Limnoria in a virtualenv, you need to run pip in that virtualenv too.
-Please note that pip is the **only** supported installation method! The old PluginDownloader is unsupported and will not work, even though you can find the plugin there.
 
 `pip3 install --user --upgrade git+https://github.com/matiasw/my-limnoria-plugins.git#subdirectory=SpiffyTitles`
 
@@ -397,7 +397,7 @@ Ignore any link which results in a title matching a pattern.
 
 Q: I have a question. Where can I get help?
 
-A: Join #limnoria on chat.freenode.net
+A: Join #limnoria on the Libera IRC network.
 
 Q: I'm getting the error `Error: That configuration variable is not a channel-specific configuration variable.`
 when I try to change a configuration value.
