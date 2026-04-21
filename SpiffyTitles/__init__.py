@@ -49,18 +49,24 @@ __maintainer__ = getattr(
 
 # This is a dictionary mapping supybot.Author instances to lists of
 # contributions.
-__contributors__ = {}
+__contributors__ = {
+    supybot.Author("butterscotchstallion"),
+    supybot.Author("oddluck"),
+    supybot.Author("appas"),
+}
 
 # This is a url where the most recent plugin package can be downloaded.
 __url__ = "https://github.com/matiasw/my-limnoria-plugins/tree/master/SpiffyTitles"
 
 from . import config
 from . import plugin
+#import _version
 from importlib import reload
 
 # In case we're being reloaded.
 reload(plugin)
 reload(config)
+#reload(_version)
 # Add more reloads here if you add third-party modules and want them to be
 # reloaded when this plugin is reloaded.  Don't forget to import them as well!
 
