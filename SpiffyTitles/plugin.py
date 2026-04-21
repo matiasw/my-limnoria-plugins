@@ -1792,12 +1792,16 @@ class SpiffyTitles(callbacks.Plugin):
                 )
                 request.raise_for_status()
                 oembed = json.loads(request.content.decode())
-                if oembed.get("title"):
-                    return "%s (r/%s by %s)" % (
-                        oembed.get("title"),
-                        oembed.get("author_name", ""),
-                        oembed.get("provider_name", "Reddit"),
-                    )
+                # Extract subreddit from URL for oEmbed fallback
+                info = urlparse(url)
+                subreddit_match = re.search(r"^/r/([^/]+)", info.path)
+                subreddit = subreddit_match.group(1) if subreddit_match else ""
+                return "%s (by %s on %s %s)" % (
+                    oembed.get("title"),
+                    oembed.get("author_name", ""),
+                    oembed.get("provider_name", "Reddit"),
+                    "r/" + subreddit,
+                )
             except Exception as e:
                 self.log.error("SpiffyTitles: Reddit oEmbed fallback failed: %s" % e)
                 # Continue to default fallback
