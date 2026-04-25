@@ -101,6 +101,7 @@ class SpiffyTitles(callbacks.Plugin):
         self.add_dailymotion_handlers()
         self.add_wikipedia_handlers()
         self.add_reddit_handlers()
+        self.add_vredd_handlers()
         self.add_twitch_handlers()
         self.add_twitter_handlers()
 
@@ -127,6 +128,9 @@ class SpiffyTitles(callbacks.Plugin):
     def add_reddit_handlers(self):
         self.handlers["reddit.com"] = self.handler_reddit
         self.handlers["www.reddit.com"] = self.handler_reddit
+
+    def add_vredd_handlers(self):
+        self.handlers["v.redd.it"] = self.handler_vredd
 
     def add_twitch_handlers(self):
         """
@@ -1669,7 +1673,7 @@ class SpiffyTitles(callbacks.Plugin):
         if cached and cached.get("expires_at", 0) > now + 60:
             return {
                 "User-Agent": self.get_user_agent(),
-                "Authorization": "bearer {}".format(cached["access_token"]),
+                "Authorization": "Bearer {}".format(cached["access_token"]),
             }, True
 
         # Fetch a fresh token
@@ -1699,6 +1703,57 @@ class SpiffyTitles(callbacks.Plugin):
                 "falling back to unauthenticated requests" % e
             )
             return {"User-Agent": self.get_user_agent()}, False
+
+    def handler_vredd(self, url, info, channel, network):
+        """
+        Handles v.redd.it short video URLs by resolving them to their
+        parent Reddit post via api/info.json, then delegating to
+        handler_reddit.
+
+        Uses the same auth headers as handler_reddit: oauth.reddit.com
+        when credentials are configured, www.reddit.com otherwise.
+        """
+        reddit_handler_enabled = self.registryValue(
+            "reddit.enabled", channel=channel, network=network
+        )
+        if not reddit_handler_enabled:
+            return self.handler_default(url, channel, network)
+
+        headers, authenticated = self._get_reddit_auth_headers()
+        api_host = "oauth.reddit.com" if authenticated else "www.reddit.com"
+        api_url = "https://{0}/api/info.json?url={1}".format(
+            api_host, quote(url, safe="")
+        )
+        self.log.debug(
+            "SpiffyTitles: v.redd.it resolving %s via %s" % (url, api_url)
+        )
+        try:
+            r = requests.get(
+                api_url,
+                headers=headers,
+                timeout=self.timeout,
+                proxies=self.proxies,
+            )
+            r.raise_for_status()
+            data = json.loads(r.content.decode())
+            children = data.get("data", {}).get("children", [])
+            if not children:
+                self.log.debug(
+                    "SpiffyTitles: v.redd.it api/info.json returned no posts"
+                )
+                return self.handler_default(url, channel, network)
+            post_url = "https://www.reddit.com" + children[0]["data"]["permalink"]
+            self.log.debug(
+                "SpiffyTitles: v.redd.it resolved to %s" % post_url
+            )
+            return self.handler_reddit(
+                post_url, urlparse(post_url), channel, network
+            )
+        except Exception as e:
+            self.log.error(
+                "SpiffyTitles: v.redd.it handler error: %s" % e
+            )
+            return self.handler_default(url, channel, network)
 
     def handler_reddit(self, url, domain, channel, network):
         """
