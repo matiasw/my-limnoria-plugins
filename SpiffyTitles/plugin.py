@@ -41,7 +41,7 @@ from jinja2 import Template
 import requests
 
 try:
-    from bs4 import BeautifulSoup, GuessedAtParserWarning
+    from bs4 import BeautifulSoup, GuessedAtParserWarning, XMLParsedAsHTMLWarning
 except ImportError as e:
     raise ImportError("%s. Try installing beautifulsoup4." % (e.args[0])) from None
 
@@ -54,6 +54,8 @@ except ImportError:
 
 import warnings
 warnings.filterwarnings("ignore", category=GuessedAtParserWarning, module=__name__)
+warnings.filterwarnings("ignore", category=XMLParsedAsHTMLWarning)
+
 
 try:
     from supybot.i18n import PluginInternationalization
