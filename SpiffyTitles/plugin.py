@@ -1083,6 +1083,14 @@ class SpiffyTitles(callbacks.Plugin):
         youtube_handler_enabled = self.registryValue("youtube.enabled", channel, network)
         if not youtube_handler_enabled:
             return self.handler_default(url, channel, network)
+        query = dict(parse_qsl(info.query)).get("search_query")
+        if info.path == "/results" and query:
+            log.debug("SpiffyTitles: handling YouTube search results for query %r" % query)
+            default_template = Template(
+                self.registryValue("default.template", channel=channel, network=network)
+            )
+            return default_template.render(title="%s - YouTube" % query, redirect=False)
+
         developer_key = self.registryValue("youtube.developerKey")
         if not developer_key:
             log.info(
