@@ -24,7 +24,7 @@ The ONLY gluten-free plugin for displaying link titles.
 - Additional information about [vimeo](https://vimeo.com) links
 - Additional information about [DailyMotion](https://dailymotion.com) links
 - Additional information about [Coub](https://coub.com) links
-- Additional information about [HackerNews](https://news.ycombinator.com) links
+- API handler for [HackerNews](https://news.ycombinator.com) links
 - Article extracts from [Wikipedia](https://en.wikipedia.org) links
 - Rate limiting to mitigate abuse
 - Configurable white/black list to control where titles are disabled
@@ -42,7 +42,16 @@ If you installed Limnoria in a virtualenv, you need to run pip in that virtualen
 
 ### Optional: Wikipedia support
 
-To enable the Wikipedia snarfer, install the optional dependency:
+The `wikipedia-api` module is included in the default `requirements.txt` install,
+but Wikipedia support remains optional at runtime. If the module is unavailable,
+the plugin falls back to the default title handler.
+
+To install the plugin without `wikipedia-api`, install the package directly and
+do not install `requirements.txt` or the optional extra:
+
+`pip3 install --user --upgrade git+https://github.com/matiasw/my-limnoria-plugins.git#subdirectory=SpiffyTitles`
+
+To install the module explicitly, use the optional extra:
 
 `pip3 install --upgrade   "limnoria-spiffytitles[wikipedia] @ git+https://github.com/matiasw/my-limnoria-plugins.git#subdirectory=SpiffyTitles"`
 
