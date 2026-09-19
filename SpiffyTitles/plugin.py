@@ -844,11 +844,11 @@ class SpiffyTitles(callbacks.Plugin):
         title = None
         video_id = None
         """ Get video ID """
-        result = re.search(r"^(http(s)://)?(www\.)?(vimeo\.com/)?(\d+)", url)
+        result = re.search(r"/(?:manage/videos/)?(\d+)/?$", domain.path)
         if result:
-            video_id = result.group(5)
+            video_id = result.group(1)
         if not video_id:
-            log.error("SpiffyTitles: Failef to get Vimeo video ID from URL: %s" % url)
+            log.error("SpiffyTitles: Failed to get Vimeo video ID from URL: %s" % url)
             return self.handler_default(url, channel, network)
         api_url = "https://vimeo.com/api/v2/video/%s.json" % video_id
         log.debug("SpiffyTitles: looking up vimeo info: %s", api_url)
