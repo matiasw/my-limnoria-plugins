@@ -1965,6 +1965,49 @@ class SpiffyTitles(callbacks.Plugin):
             },
         }
         info = urlparse(url)
+        if re.match(r"^/r/[^/]+/s/[^/]+/?$", info.path):
+            redirect_headers = {
+                "User-Agent": headers.get("User-Agent") or self.get_user_agent()
+            }
+            self.log.debug(
+                "SpiffyTitles: following Reddit short-link redirect for %s" % url
+            )
+            try:
+                request = requests.get(
+                    url,
+                    headers=redirect_headers,
+                    timeout=self.timeout,
+                    proxies=self.proxies,
+                    allow_redirects=True,
+                )
+                request.raise_for_status()
+                resolved_url = request.url
+                resolved_info = urlparse(resolved_url)
+                if not re.match(
+                    r"^/r/[^/]+/comments/[^/]+(?:/[^/]+/?)?$",
+                    resolved_info.path,
+                ):
+                    self.log.debug(
+                        "SpiffyTitles: Reddit short link did not resolve to a thread"
+                    )
+                    return self.handler_default(url, channel, network)
+                self.log.debug(
+                    "SpiffyTitles: Reddit short link resolved to %s" % resolved_url
+                )
+                return self.handler_reddit(
+                    resolved_url, urlparse(resolved_url), channel, network
+                )
+            except (
+                requests.exceptions.RequestException,
+                ValueError,
+                AttributeError,
+                IndexError,
+            ) as e:
+                self.log.error(
+                    "SpiffyTitles: Reddit short link resolution failed: %s" % e
+                )
+                return self.handler_default(url, channel, network)
+
         for name in patterns:
             match = re.search(patterns[name]["pattern"], info.path)
             if match:
