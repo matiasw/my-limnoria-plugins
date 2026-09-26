@@ -2463,3 +2463,8 @@ class SpiffyTitles(callbacks.Plugin):
 
 
 Class = SpiffyTitles
+
+
+def reload():
+    """Provide Limnoria's package reload hook with this module."""
+    return sys.modules[__name__]

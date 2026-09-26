@@ -60,13 +60,11 @@ __url__ = "https://github.com/matiasw/my-limnoria-plugins/tree/master/SpiffyTitl
 
 from . import config
 from . import plugin
-#import _version
-from importlib import reload
+from importlib import reload as _reload
 
 # In case we're being reloaded.
-reload(plugin)
-reload(config)
-#reload(_version)
+_reload(plugin)
+_reload(config)
 # Add more reloads here if you add third-party modules and want them to be
 # reloaded when this plugin is reloaded.  Don't forget to import them as well!
 
@@ -75,6 +73,20 @@ if world.testing:
 
 Class = plugin.Class
 configure = config.configure
+
+
+def reload(plugin_module=None):
+    """Reload package modules and refresh the class exported to Limnoria."""
+    global plugin, config, Class, configure
+
+    if plugin_module is not None:
+        plugin = _reload(plugin_module)
+    else:
+        plugin = _reload(plugin)
+    config = _reload(config)
+    Class = plugin.Class
+    configure = config.configure
+    return plugin
 
 
 # vim:set shiftwidth=4 tabstop=4 expandtab textwidth=79:
